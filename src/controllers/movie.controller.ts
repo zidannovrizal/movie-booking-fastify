@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { CreateMovieDto, MovieStatus, UpdateMovieDto } from "../types";
+import { FastifyRequest, FastifyReply } from "fastify";
+import { tmdbService } from "../services/tmdb.service";
 
 export class MovieController {
   private prisma: PrismaClient;
@@ -9,63 +10,67 @@ export class MovieController {
   }
 
   async getAllMovies() {
-    return this.prisma.movie.findMany({
-      orderBy: {
-        releaseDate: "desc",
-      },
-    });
+    return tmdbService.getNowPlayingMovies();
   }
 
   async getMovieById(id: string) {
-    return this.prisma.movie.findUnique({
-      where: { id },
-      include: {
-        showTimes: {
-          include: {
-            theater: true,
-          },
-        },
-      },
-    });
+    const movieId = parseInt(id);
+    if (isNaN(movieId)) {
+      throw new Error("Invalid movie ID");
+    }
+    return tmdbService.getMovieDetails(movieId);
   }
 
   async getNowShowingMovies() {
-    return this.prisma.movie.findMany({
-      where: {
-        status: MovieStatus.NOW_SHOWING,
-      },
-      orderBy: {
-        releaseDate: "desc",
-      },
-    });
+    return tmdbService.getNowPlayingMovies();
   }
 
   async getComingSoonMovies() {
-    return this.prisma.movie.findMany({
+    return tmdbService.getUpcomingMovies();
+  }
+
+  async searchMovies(query: string) {
+    return tmdbService.searchMovies(query);
+  }
+
+  // Get showtimes for a specific movie
+  async getMovieShowtimes(movieId: number) {
+    return this.prisma.showTime.findMany({
       where: {
-        status: MovieStatus.COMING_SOON,
+        tmdbMovieId: movieId,
+      },
+      include: {
+        theater: true,
       },
       orderBy: {
-        releaseDate: "asc",
+        startTime: "asc",
       },
     });
   }
 
-  async createMovie(data: CreateMovieDto) {
-    return this.prisma.movie.create({
-      data,
+  // Create a new showtime for a movie
+  async createShowtime(
+    movieId: number,
+    theaterId: string,
+    startTime: Date,
+    price: number
+  ) {
+    return this.prisma.showTime.create({
+      data: {
+        tmdbMovieId: movieId,
+        theaterId,
+        startTime,
+        price,
+      },
+      include: {
+        theater: true,
+      },
     });
   }
 
-  async updateMovie(id: string, data: UpdateMovieDto) {
-    return this.prisma.movie.update({
-      where: { id },
-      data,
-    });
-  }
-
-  async deleteMovie(id: string) {
-    return this.prisma.movie.delete({
+  // Delete a showtime
+  async deleteShowtime(id: string) {
+    return this.prisma.showTime.delete({
       where: { id },
     });
   }

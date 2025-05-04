@@ -78,7 +78,6 @@ export class AuthController {
           include: {
             showTime: {
               include: {
-                movie: true,
                 theater: true,
               },
             },

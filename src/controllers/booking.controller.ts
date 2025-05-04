@@ -39,7 +39,6 @@ export class BookingController {
       include: {
         showTime: {
           include: {
-            movie: true,
             theater: true,
           },
         },
@@ -53,7 +52,6 @@ export class BookingController {
       include: {
         showTime: {
           include: {
-            movie: true,
             theater: true,
           },
         },
@@ -70,7 +68,6 @@ export class BookingController {
       include: {
         showTime: {
           include: {
-            movie: true,
             theater: true,
           },
         },
@@ -116,7 +113,6 @@ export class BookingController {
       include: {
         showTime: {
           include: {
-            movie: true,
             theater: true,
           },
         },
@@ -136,7 +132,6 @@ export class BookingController {
         },
         showTime: {
           include: {
-            movie: true,
             theater: true,
           },
         },
@@ -156,7 +151,6 @@ export class BookingController {
       include: {
         showTime: {
           include: {
-            movie: true,
             theater: true,
           },
         },

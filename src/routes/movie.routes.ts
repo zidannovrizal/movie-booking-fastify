@@ -1,27 +1,10 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { MovieController } from "../controllers/movie.controller";
-import { CreateMovieDto, UpdateMovieDto } from "../types";
 
 export async function movieRoutes(fastify: FastifyInstance) {
   const controller = new MovieController();
 
-  // Authentication middleware
-  async function authenticate(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      await request.jwtVerify();
-    } catch (err) {
-      reply.code(401).send({ error: "Unauthorized" });
-    }
-  }
-
-  // Authorization middleware
-  async function authorizeAdmin(request: FastifyRequest, reply: FastifyReply) {
-    if (!request.user || request.user.role !== "ADMIN") {
-      reply.code(403).send({ error: "Forbidden" });
-    }
-  }
-
-  // Get all movies
+  // Get all movies (now playing)
   fastify.get("/", async (request, reply) => {
     return controller.getAllMovies();
   });
@@ -42,38 +25,24 @@ export async function movieRoutes(fastify: FastifyInstance) {
     return controller.getComingSoonMovies();
   });
 
-  // Admin routes
-  fastify.post(
-    "/",
-    {
-      preHandler: [authenticate, authorizeAdmin],
-    },
-    async (request, reply) => {
-      const movie = request.body as CreateMovieDto;
-      return controller.createMovie(movie);
+  // Search movies
+  fastify.get("/search", async (request, reply) => {
+    const { query } = request.query as { query: string };
+    if (!query) {
+      reply.code(400).send({ error: "Search query is required" });
+      return;
     }
-  );
+    return controller.searchMovies(query);
+  });
 
-  fastify.put(
-    "/:id",
-    {
-      preHandler: [authenticate, authorizeAdmin],
-    },
-    async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const movie = request.body as UpdateMovieDto;
-      return controller.updateMovie(id, movie);
+  // Get movie showtimes
+  fastify.get("/:id/showtimes", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const movieId = parseInt(id);
+    if (isNaN(movieId)) {
+      reply.code(400).send({ error: "Invalid movie ID" });
+      return;
     }
-  );
-
-  fastify.delete(
-    "/:id",
-    {
-      preHandler: [authenticate, authorizeAdmin],
-    },
-    async (request, reply) => {
-      const { id } = request.params as { id: string };
-      return controller.deleteMovie(id);
-    }
-  );
+    return controller.getMovieShowtimes(movieId);
+  });
 }

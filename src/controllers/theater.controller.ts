@@ -11,11 +11,7 @@ export class TheaterController {
   async getAllTheaters() {
     return this.prisma.theater.findMany({
       include: {
-        showTimes: {
-          include: {
-            movie: true,
-          },
-        },
+        showTimes: true,
       },
     });
   }
@@ -24,11 +20,7 @@ export class TheaterController {
     return this.prisma.theater.findUnique({
       where: { id },
       include: {
-        showTimes: {
-          include: {
-            movie: true,
-          },
-        },
+        showTimes: true,
       },
     });
   }
@@ -36,17 +28,10 @@ export class TheaterController {
   async getTheatersByCity(city: string) {
     return this.prisma.theater.findMany({
       where: {
-        city: {
-          contains: city,
-          mode: "insensitive",
-        },
+        city: city,
       },
       include: {
-        showTimes: {
-          include: {
-            movie: true,
-          },
-        },
+        showTimes: true,
       },
     });
   }
@@ -67,7 +52,6 @@ export class TheaterController {
         },
       },
       include: {
-        movie: true,
         theater: true,
       },
       orderBy: {
@@ -77,8 +61,14 @@ export class TheaterController {
   }
 
   async createTheater(data: CreateTheaterDto) {
+    // Set default capacity if not provided
+    const theaterData = {
+      ...data,
+      capacity: data.capacity || 100, // Default capacity of 100 seats
+    };
+
     return this.prisma.theater.create({
-      data,
+      data: theaterData,
     });
   }
 

@@ -3,30 +3,22 @@ export enum UserRole {
   ADMIN = "ADMIN",
 }
 
-export enum MovieStatus {
-  COMING_SOON = "COMING_SOON",
-  NOW_SHOWING = "NOW_SHOWING",
-  ENDED = "ENDED",
-}
-
 export enum BookingStatus {
   PENDING = "PENDING",
-  PAID = "PAID",
+  CONFIRMED = "CONFIRMED",
   CANCELLED = "CANCELLED",
-  COMPLETED = "COMPLETED",
 }
 
 export interface Movie {
-  id: string;
+  id: number; // TMDB Movie ID
   title: string;
   description: string;
-  duration: number;
-  releaseDate: Date;
-  status: MovieStatus;
-  posterUrl: string;
-  trailerUrl?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  posterUrl: string | null;
+  backdropUrl: string | null;
+  releaseDate: string;
+  rating: number;
+  runtime?: number;
+  genres?: string;
 }
 
 export interface Theater {
@@ -36,6 +28,7 @@ export interface Theater {
   city: string;
   address: string;
   facilities: string[];
+  capacity: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,25 +39,28 @@ export interface CreateTheaterDto {
   city: string;
   address: string;
   facilities: string[];
+  capacity: number;
 }
 
 export interface UpdateTheaterDto extends Partial<CreateTheaterDto> {}
 
-export interface CreateMovieDto {
-  title: string;
-  synopsis: string;
-  description: string;
-  duration: number;
-  rating: string;
-  releaseDate: Date;
-  status: MovieStatus;
-  posterUrl: string;
-  trailerUrl?: string;
-  cast: string[];
-  director: string;
-  genre: string[];
-  language?: string;
-  subtitles: string[];
+export interface ShowTime {
+  id: string;
+  tmdbMovieId: number;
+  theaterId: string;
+  startTime: Date;
+  price: number;
+  theater?: Theater;
 }
 
-export interface UpdateMovieDto extends Partial<CreateMovieDto> {}
+export interface Booking {
+  id: string;
+  userId: string;
+  showTimeId: string;
+  seats: string[];
+  totalPrice: number;
+  status: BookingStatus;
+  showTime?: ShowTime;
+  createdAt: Date;
+  updatedAt: Date;
+}

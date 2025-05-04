@@ -1,4 +1,4 @@
-import app from "./app";
+import app from "./app.js";
 
 const PORT = 3001; // Fixed port for backend
 

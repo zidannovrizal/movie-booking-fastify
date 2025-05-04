@@ -14,77 +14,56 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
+  id            String    @id @default(cuid())
   email         String    @unique
   password      String
   name          String
   phoneNumber   String?
+  profilePicture String?
   role          UserRole  @default(USER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   bookings      Booking[]
-}
 
-model Movie {
-  id              String    @id @default(uuid())
-  title           String
-  synopsis        String
-  duration        Int       // in minutes
-  rating          String    // e.g., "PG-13", "R", etc.
-  releaseDate     DateTime
-  posterUrl       String
-  trailerUrl      String?
-  cast            String[]
-  director        String
-  genre           String[]
-  language        String    @default("Indonesian")
-  subtitles       String[]
-  status          MovieStatus @default(NOW_SHOWING)
-  showTimes       ShowTime[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  @@map("users")
 }
 
 model Theater {
-  id          String    @id @default(uuid())
+  id          String     @id @default(uuid())
   name        String
   location    String
-  city        String
+  city        String     @db.VarChar(100)
   address     String
-  facilities  String[]  // e.g., ["Parking", "Food Court", etc.]
+  facilities  String[]
+  capacity    Int
   showTimes   ShowTime[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 model ShowTime {
-  id          String    @id @default(uuid())
-  movieId     String
-  theaterId   String
-  startTime   DateTime
-  endTime     DateTime
-  price       Float
-  hallNumber  String    // e.g., "Hall 1", "IMAX 1"
-  seatingMap  Json      // Complex seating arrangement
-  movie       Movie     @relation(fields: [movieId], references: [id])
-  theater     Theater   @relation(fields: [theaterId], references: [id])
-  bookings    Booking[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String    @id @default(uuid())
+  tmdbMovieId Int     // TMDB Movie ID
+  theaterId String
+  startTime DateTime
+  price     Float
+  theater   Theater   @relation(fields: [theaterId], references: [id])
+  bookings  Booking[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Booking {
-  id          String    @id @default(uuid())
-  userId      String
-  showTimeId  String
-  seats       String[]  // e.g., ["A1", "A2"]
-  totalPrice  Float
-  status      BookingStatus @default(PENDING)
-  paymentId   String?   // For payment integration
-  user        User      @relation(fields: [userId], references: [id])
-  showTime    ShowTime  @relation(fields: [showTimeId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String   @id @default(uuid())
+  userId     String
+  showTimeId String
+  seats      String[] // Array of seat numbers
+  totalPrice Float
+  status     BookingStatus @default(PENDING)
+  user       User     @relation(fields: [userId], references: [id])
+  showTime   ShowTime @relation(fields: [showTimeId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 enum UserRole {
@@ -92,15 +71,8 @@ enum UserRole {
   ADMIN
 }
 
-enum MovieStatus {
-  COMING_SOON
-  NOW_SHOWING
-  ENDED
-}
-
 enum BookingStatus {
   PENDING
-  PAID
+  CONFIRMED
   CANCELLED
-  COMPLETED
 }
