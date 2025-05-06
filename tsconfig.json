@@ -13,17 +13,18 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "typeRoots": ["./node_modules/@types"],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     "resolveJsonModule": true,
     "allowJs": true,
     "sourceMap": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "noImplicitAny": false
   },
   "ts-node": {
     "files": true,
     "transpileOnly": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/types/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }
