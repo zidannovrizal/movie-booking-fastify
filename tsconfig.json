@@ -18,7 +18,8 @@
     "allowJs": true,
     "sourceMap": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "types": ["node", "axios", "bcrypt", "jsonwebtoken"]
   },
   "ts-node": {
     "files": true,
