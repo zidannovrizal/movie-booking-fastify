@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ES2022",
-    "moduleResolution": "Node",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "strict": false,
     "skipLibCheck": true,
@@ -20,12 +20,12 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "noImplicitAny": false,
-    "allowImportingTsExtensions": true,
-    "noEmit": false
+    "noEmit": true
   },
   "ts-node": {
     "files": true,
-    "transpileOnly": true
+    "transpileOnly": true,
+    "esm": true
   },
   "include": ["src/**/*", "src/types/*.d.ts"],
   "exclude": ["node_modules", "dist"]
