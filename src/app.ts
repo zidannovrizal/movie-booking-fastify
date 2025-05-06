@@ -40,19 +40,36 @@ const app = fastify({
 
 // Register core plugins first
 app.register(cors, {
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-    "https://movie-booking-web-production.up.railway.app", // Add your frontend Railway domain
-    "http://localhost:4173", // Vite preview mode
-  ],
+  origin: (origin, cb) => {
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:5173",
+      "http://localhost:4173",
+      "https://movie-booking-web-production.up.railway.app",
+    ];
+
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.includes(origin)) {
+      cb(null, true);
+      return;
+    }
+
+    // During development, allow all origins
+    if (process.env.NODE_ENV === "development") {
+      cb(null, true);
+      return;
+    }
+
+    cb(new Error("Not allowed by CORS"), false);
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "Origin", "Accept"],
   exposedHeaders: ["Authorization"],
   maxAge: 86400, // 24 hours
+  preflight: true,
 });
 
 app.register(jwt, {
