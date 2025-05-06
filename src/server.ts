@@ -1,17 +1,19 @@
-import app from "./app.ts";
+import app from "./app.js";
 import dotenv from "dotenv";
 
 // Load environment variables
 dotenv.config();
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || "localhost";
 
-app
-  .listen({ port: Number(PORT), host: "0.0.0.0" })
-  .then(() => {
-    console.log(`Server running at http://localhost:${PORT}`);
-  })
-  .catch((err: Error) => {
-    console.error("Error starting server:", err);
+const start = async () => {
+  try {
+    await app.listen({ port: Number(PORT), host: HOST });
+  } catch (err) {
+    app.log.error(err);
     process.exit(1);
-  });
+  }
+};
+
+start();

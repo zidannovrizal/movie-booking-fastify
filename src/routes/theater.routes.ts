@@ -1,81 +1,72 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { TheaterController } from "../controllers/theater.controller";
-import { CreateTheaterDto, UpdateTheaterDto } from "../types";
+import { FastifyInstance } from "fastify";
+import { TheaterController } from "../controllers/theater.controller.js";
+import { CreateTheaterDto, UpdateTheaterDto } from "../types/index.js";
+
+declare module "fastify" {
+  interface FastifyInstance {
+    authenticate: any;
+    requireAdmin: any;
+  }
+}
 
 export async function theaterRoutes(fastify: FastifyInstance) {
   const controller = new TheaterController();
 
-  // Authentication middleware
-  async function authenticate(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      await request.jwtVerify();
-    } catch (err) {
-      reply.code(401).send({ error: "Unauthorized" });
-    }
-  }
-
-  // Authorization middleware
-  async function authorizeAdmin(request: FastifyRequest, reply: FastifyReply) {
-    if (!request.user || request.user.role !== "ADMIN") {
-      reply.code(403).send({ error: "Forbidden" });
-    }
-  }
-
   // Get all theaters
-  fastify.get("/", async (request, reply) => {
+  fastify.get("/", async () => {
     return controller.getAllTheaters();
   });
 
-  // Get theater by id
-  fastify.get("/:id", async (request, reply) => {
+  // Get theater by ID
+  fastify.get("/:id", async (request) => {
     const { id } = request.params as { id: string };
     return controller.getTheaterById(id);
   });
 
   // Get theaters by city
-  fastify.get("/city/:city", async (request, reply) => {
+  fastify.get("/city/:city", async (request) => {
     const { city } = request.params as { city: string };
     return controller.getTheatersByCity(city);
   });
 
   // Get theater showtimes
-  fastify.get("/:id/showtimes", async (request, reply) => {
+  fastify.get("/:id/showtimes", async (request) => {
     const { id } = request.params as { id: string };
     const { date } = request.query as { date?: string };
     return controller.getTheaterShowtimes(id, date);
   });
 
-  // Admin routes
-  fastify.post(
+  // Create theater (admin only)
+  fastify.post<{ Body: CreateTheaterDto }>(
     "/",
     {
-      preHandler: [authenticate, authorizeAdmin],
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
     },
-    async (request, reply) => {
-      const theater = request.body as CreateTheaterDto;
-      return controller.createTheater(theater);
+    async (request) => {
+      return controller.createTheater(request.body);
     }
   );
 
-  fastify.put(
+  // Update theater (admin only)
+  fastify.put<{ Params: { id: string }; Body: UpdateTheaterDto }>(
     "/:id",
     {
-      preHandler: [authenticate, authorizeAdmin],
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
     },
-    async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const theater = request.body as UpdateTheaterDto;
-      return controller.updateTheater(id, theater);
+    async (request) => {
+      const { id } = request.params;
+      return controller.updateTheater(id, request.body);
     }
   );
 
-  fastify.delete(
+  // Delete theater (admin only)
+  fastify.delete<{ Params: { id: string } }>(
     "/:id",
     {
-      preHandler: [authenticate, authorizeAdmin],
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
     },
-    async (request, reply) => {
-      const { id } = request.params as { id: string };
+    async (request) => {
+      const { id } = request.params;
       return controller.deleteTheater(id);
     }
   );

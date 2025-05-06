@@ -1,7 +1,7 @@
 import axios from "axios";
 import { PrismaClient } from "@prisma/client";
 
-interface TMDBMovie {
+export interface TMDBMovie {
   id: number;
   title: string;
   overview: string;
@@ -18,7 +18,7 @@ interface TMDBMovie {
   video: boolean;
 }
 
-interface TMDBMovieDetails extends TMDBMovie {
+export interface TMDBMovieDetails extends TMDBMovie {
   genres: { id: number; name: string }[];
   runtime: number;
   status: string;
@@ -67,14 +67,14 @@ interface TMDBMovieDetails extends TMDBMovie {
   };
 }
 
-interface TMDBResponse<T> {
+export interface TMDBResponse<T> {
   page: number;
   results: T[];
   total_pages: number;
   total_results: number;
 }
 
-interface FormattedMovie {
+export interface FormattedMovie {
   id: number;
   title: string;
   originalTitle: string;

@@ -1,5 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-import { BookingStatus } from "@/types";
+import { PrismaClient, BookingStatus } from "@prisma/client";
 
 export class BookingController {
   private prisma: PrismaClient;
@@ -139,11 +138,7 @@ export class BookingController {
             email: true,
           },
         },
-        showTime: {
-          include: {
-            theater: true,
-          },
-        },
+        theater: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -155,14 +150,10 @@ export class BookingController {
     return this.prisma.booking.update({
       where: { id },
       data: {
-        status: status as any,
+        status,
       },
       include: {
-        showTime: {
-          include: {
-            theater: true,
-          },
-        },
+        theater: true,
       },
     });
   }

@@ -1,40 +1,56 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const fastify_1 = __importDefault(require("fastify"));
-const jwt_1 = __importDefault(require("@fastify/jwt"));
-const cors_1 = __importDefault(require("@fastify/cors"));
-const movie_routes_1 = require("./routes/movie.routes");
-const theater_routes_1 = require("./routes/theater.routes");
-const auth_routes_1 = require("./routes/auth.routes");
-const booking_routes_1 = require("./routes/booking.routes");
-const auth_1 = __importDefault(require("./plugins/auth"));
-const app = (0, fastify_1.default)({
+import fastify from "fastify";
+import jwt from "@fastify/jwt";
+import cors from "@fastify/cors";
+import { movieRoutes } from "./routes/movie.routes.js";
+import { theaterRoutes } from "./routes/theater.routes.js";
+import { authRoutes } from "./routes/auth.routes.js";
+import { bookingRoutes } from "./routes/booking.routes.js";
+import authPlugin from "./plugins/auth.js";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import fastifyStatic from "@fastify/static";
+// Get the directory path for uploads
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const UPLOAD_DIR = join(__dirname, "..", "uploads");
+const app = fastify({
     logger: true,
 });
 // Register core plugins first
-app.register(cors_1.default, {
-    origin: ["http://localhost:3000", "http://localhost:5173"], // Allow both Vite dev and production ports
+app.register(cors, {
+    origin: [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ],
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Authorization"],
+    maxAge: 86400, // 24 hours
 });
-app.register(jwt_1.default, {
+app.register(jwt, {
     secret: process.env.JWT_SECRET || "supersecret",
 });
+// Serve uploaded files statically
+app.register(fastifyStatic, {
+    root: UPLOAD_DIR,
+    prefix: "/uploads/",
+    decorateReply: false,
+});
 // Register auth plugin before routes
-app.register(auth_1.default);
+app.register(authPlugin);
 // Register routes after auth plugin is ready
 app.register(async (instance) => {
-    instance.register(movie_routes_1.movieRoutes, { prefix: "/api/movies" });
-    instance.register(theater_routes_1.theaterRoutes, { prefix: "/api/theaters" });
-    instance.register(auth_routes_1.authRoutes, { prefix: "/api/auth" });
-    instance.register(booking_routes_1.bookingRoutes, { prefix: "/api/bookings" });
+    instance.register(movieRoutes, { prefix: "/api/movies" });
+    instance.register(theaterRoutes, { prefix: "/api/theaters" });
+    instance.register(authRoutes, { prefix: "/api/auth" });
+    instance.register(bookingRoutes, { prefix: "/api/bookings" });
 });
 // Health check route
 app.get("/health", async () => {
     return { status: "ok" };
 });
-exports.default = app;
+export default app;
+//# sourceMappingURL=app.js.map

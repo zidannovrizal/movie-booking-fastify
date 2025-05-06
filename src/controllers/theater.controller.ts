@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { CreateTheaterDto, UpdateTheaterDto } from "../types";
+import { CreateTheaterDto, UpdateTheaterDto } from "../types/index.js";
 
 export class TheaterController {
   private prisma: PrismaClient;
@@ -9,19 +9,12 @@ export class TheaterController {
   }
 
   async getAllTheaters() {
-    return this.prisma.theater.findMany({
-      include: {
-        showTimes: true,
-      },
-    });
+    return this.prisma.theater.findMany();
   }
 
   async getTheaterById(id: string) {
     return this.prisma.theater.findUnique({
       where: { id },
-      include: {
-        showTimes: true,
-      },
     });
   }
 
@@ -30,41 +23,31 @@ export class TheaterController {
       where: {
         city: city,
       },
-      include: {
-        showTimes: true,
-      },
     });
   }
 
   async getTheaterShowtimes(id: string, date?: string) {
-    const startDate = date ? new Date(date) : new Date();
-    startDate.setHours(0, 0, 0, 0);
-
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 1);
-
-    return this.prisma.showTime.findMany({
-      where: {
-        theaterId: id,
-        startTime: {
-          gte: startDate,
-          lt: endDate,
-        },
-      },
-      include: {
-        theater: true,
-      },
-      orderBy: {
-        startTime: "asc",
-      },
+    const theater = await this.prisma.theater.findUnique({
+      where: { id },
     });
+
+    if (!theater) {
+      throw new Error("Theater not found");
+    }
+
+    return theater.showTimes;
   }
 
   async createTheater(data: CreateTheaterDto) {
-    // Set default capacity if not provided
+    // Set default values if not provided
     const theaterData = {
       ...data,
       capacity: data.capacity || 100, // Default capacity of 100 seats
+      country: data.country || "Indonesia", // Default country
+      regularPriceWeekday: data.regularPriceWeekday || 50000, // Default weekday price
+      regularPriceWeekend: data.regularPriceWeekend || 75000, // Default weekend price
+      vipPriceWeekday: data.vipPriceWeekday || 75000, // Default VIP weekday price
+      vipPriceWeekend: data.vipPriceWeekend || 100000, // Default VIP weekend price
     };
 
     return this.prisma.theater.create({

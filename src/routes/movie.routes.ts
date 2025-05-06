@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { MovieController } from "../controllers/movie.controller";
+import { MovieController } from "../controllers/movie.controller.js";
 
 const movieController = new MovieController();
 
@@ -72,16 +72,8 @@ export async function movieRoutes(fastify: FastifyInstance) {
   });
 
   // Search movies
-  fastify.get("/search/:query", async (request, reply) => {
-    try {
-      const { query } = request.params as { query: string };
-      return await movieController.searchMovies(query);
-    } catch (error: any) {
-      console.error("Error searching movies:", error);
-      reply.status(500).send({
-        error: "Internal Server Error",
-        message: error?.message || "Failed to search movies",
-      });
-    }
+  fastify.get("/search", async (request) => {
+    const { query } = request.query as { query: string };
+    return movieController.searchMovies(query);
   });
 }

@@ -1,77 +1,81 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BookingController = void 0;
-const client_1 = require("@prisma/client");
-const types_1 = require("../types");
-class BookingController {
+import { PrismaClient } from "@prisma/client";
+export class BookingController {
+    prisma;
     constructor() {
-        this.prisma = new client_1.PrismaClient();
+        this.prisma = new PrismaClient();
     }
     async createBooking(userId, data) {
-        // Get showtime details to calculate price
-        const showTime = await this.prisma.showTime.findUnique({
-            where: { id: data.showTimeId },
+        // Check if seats are available
+        const existingBookings = await this.prisma.booking.findMany({
+            where: {
+                theaterId: data.theaterId,
+                showDate: new Date(data.showDate),
+                showTime: data.showTime,
+                status: "CONFIRMED",
+            },
+            select: {
+                seats: true,
+            },
         });
-        if (!showTime) {
-            throw new Error("Show time not found");
+        const bookedSeats = existingBookings.flatMap((booking) => booking.seats);
+        const requestedSeats = data.seats.map((seat) => seat.seatNumber);
+        // Check for double booking
+        const doubleBookedSeats = requestedSeats.filter((seat) => bookedSeats.includes(seat));
+        if (doubleBookedSeats.length > 0) {
+            throw new Error(`Seats ${doubleBookedSeats.join(", ")} are already booked`);
         }
-        // Calculate total price
-        const totalPrice = showTime.price * data.seats.length;
         // Create booking
         return this.prisma.booking.create({
             data: {
                 userId,
-                showTimeId: data.showTimeId,
-                seats: data.seats,
-                totalPrice,
-                status: types_1.BookingStatus.PENDING,
+                theaterId: data.theaterId,
+                tmdbMovieId: data.movieId,
+                posterUrl: data.posterUrl,
+                showDate: new Date(data.showDate),
+                showTime: data.showTime,
+                seats: requestedSeats,
+                totalPrice: data.totalPrice,
+                status: "PENDING",
             },
             include: {
-                showTime: {
-                    include: {
-                        movie: true,
-                        theater: true,
-                    },
-                },
+                theater: true,
             },
         });
     }
+    async getBookedSeats(theaterId, showDate, showTime) {
+        const bookings = await this.prisma.booking.findMany({
+            where: {
+                theaterId,
+                showDate: new Date(showDate),
+                showTime,
+                status: "CONFIRMED",
+            },
+            select: {
+                seats: true,
+            },
+        });
+        return bookings.flatMap((booking) => booking.seats);
+    }
     async getUserBookings(userId) {
         return this.prisma.booking.findMany({
-            where: { userId },
+            where: {
+                userId,
+            },
             include: {
-                showTime: {
-                    include: {
-                        movie: true,
-                        theater: true,
-                    },
-                },
+                theater: true,
             },
             orderBy: {
                 createdAt: "desc",
             },
         });
     }
-    async getBookingById(id, userId) {
-        const booking = await this.prisma.booking.findUnique({
+    async getBookingById(id) {
+        return this.prisma.booking.findUnique({
             where: { id },
             include: {
-                showTime: {
-                    include: {
-                        movie: true,
-                        theater: true,
-                    },
-                },
+                theater: true,
             },
         });
-        if (!booking) {
-            throw new Error("Booking not found");
-        }
-        // Check if the booking belongs to the user
-        if (booking.userId !== userId) {
-            throw new Error("Unauthorized");
-        }
-        return booking;
     }
     async cancelBooking(id, userId) {
         const booking = await this.prisma.booking.findUnique({
@@ -80,26 +84,13 @@ class BookingController {
         if (!booking) {
             throw new Error("Booking not found");
         }
-        // Check if the booking belongs to the user
         if (booking.userId !== userId) {
             throw new Error("Unauthorized");
-        }
-        // Check if the booking can be cancelled
-        if (booking.status !== types_1.BookingStatus.PENDING) {
-            throw new Error("Booking cannot be cancelled");
         }
         return this.prisma.booking.update({
             where: { id },
             data: {
-                status: types_1.BookingStatus.CANCELLED,
-            },
-            include: {
-                showTime: {
-                    include: {
-                        movie: true,
-                        theater: true,
-                    },
-                },
+                status: "CANCELLED",
             },
         });
     }
@@ -113,12 +104,7 @@ class BookingController {
                         email: true,
                     },
                 },
-                showTime: {
-                    include: {
-                        movie: true,
-                        theater: true,
-                    },
-                },
+                theater: true,
             },
             orderBy: {
                 createdAt: "desc",
@@ -129,17 +115,12 @@ class BookingController {
         return this.prisma.booking.update({
             where: { id },
             data: {
-                status: status,
+                status,
             },
             include: {
-                showTime: {
-                    include: {
-                        movie: true,
-                        theater: true,
-                    },
-                },
+                theater: true,
             },
         });
     }
 }
-exports.BookingController = BookingController;
+//# sourceMappingURL=booking.controller.js.map

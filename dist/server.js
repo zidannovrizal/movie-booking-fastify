@@ -1,16 +1,17 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+import app from "./app.js";
+import dotenv from "dotenv";
+// Load environment variables
+dotenv.config();
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || "localhost";
+const start = async () => {
+    try {
+        await app.listen({ port: Number(PORT), host: HOST });
+    }
+    catch (err) {
+        app.log.error(err);
+        process.exit(1);
+    }
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-const app_1 = __importDefault(require("./app"));
-const PORT = 3001; // Fixed port for backend
-app_1.default
-    .listen({ port: PORT, host: "0.0.0.0" })
-    .then(() => {
-    console.log(`Server running at http://localhost:${PORT}`);
-})
-    .catch((err) => {
-    console.error("Error starting server:", err);
-    process.exit(1);
-});
+start();
+//# sourceMappingURL=server.js.map

@@ -1,19 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { UserRole } from "../types";
+import { UserRole } from "../types/index.js";
 import fp from "fastify-plugin";
-
-declare module "fastify" {
-  interface FastifyInstance {
-    authenticate: (
-      request: FastifyRequest,
-      reply: FastifyReply
-    ) => Promise<void>;
-    authorizeAdmin: (
-      request: FastifyRequest,
-      reply: FastifyReply
-    ) => Promise<void>;
-  }
-}
 
 interface JWTPayload {
   id: string;
@@ -37,7 +24,7 @@ async function authPlugin(fastify: FastifyInstance) {
 
   // Add admin authorization decorator
   fastify.decorate(
-    "authorizeAdmin",
+    "requireAdmin",
     async function (request: FastifyRequest, reply: FastifyReply) {
       const user = request.user;
       if (!user || user.role !== UserRole.ADMIN) {

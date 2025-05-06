@@ -60,7 +60,6 @@ export const authRoutes = async function (fastify: FastifyInstance) {
       fileSize: 5 * 1024 * 1024, // 5MB
     },
     attachFieldsToBody: true,
-    addToBody: true,
   });
 
   // Sign Up Route
@@ -249,33 +248,31 @@ export const authRoutes = async function (fastify: FastifyInstance) {
             email: true,
             name: true,
             phoneNumber: true,
+            profilePicture: true,
             role: true,
           },
         });
 
-        return reply.send({
-          message: "Profile updated successfully",
-          user,
-        });
+        return user;
       } catch (error) {
         console.error("Update profile error:", error);
-        return reply.status(500).send({
-          error: "Internal server error during profile update",
-        });
+        throw error;
       }
     }
   );
 
   // Change password
   fastify.put<{ Body: ChangePasswordBody }>(
-    "/password",
-    { onRequest: [fastify.authenticate] },
+    "/change-password",
+    {
+      onRequest: [fastify.authenticate],
+    },
     async (request, reply) => {
       try {
         const { currentPassword, newPassword } = request.body;
         const userId = request.user.id;
 
-        // Get user with current password
+        // Get user with password
         const user = await prisma.user.findUnique({
           where: { id: userId },
         });
@@ -309,14 +306,63 @@ export const authRoutes = async function (fastify: FastifyInstance) {
           },
         });
 
-        return reply.send({
-          message: "Password updated successfully",
-        });
+        return { message: "Password updated successfully" };
       } catch (error) {
         console.error("Change password error:", error);
-        return reply.status(500).send({
-          error: "Internal server error during password change",
+        throw error;
+      }
+    }
+  );
+
+  // Upload profile picture
+  fastify.post(
+    "/profile-picture",
+    {
+      onRequest: [fastify.authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const data = await request.file();
+        if (!data) {
+          throw new Error("No file uploaded");
+        }
+
+        // Validate file type
+        const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+        if (!allowedMimeTypes.includes(data.mimetype)) {
+          throw new Error(
+            "Invalid file type. Only JPEG, PNG and WebP are allowed"
+          );
+        }
+
+        // Generate unique filename
+        const fileExt = data.filename.split(".").pop();
+        const filename = `${randomUUID()}.${fileExt}`;
+        const filepath = join(UPLOAD_DIR, filename);
+
+        // Save file
+        await pipeline(data.file, createWriteStream(filepath));
+
+        // Update user profile with new picture URL
+        const user = await prisma.user.update({
+          where: { id: request.user.id },
+          data: {
+            profilePicture: `/uploads/${filename}`,
+          },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            phoneNumber: true,
+            profilePicture: true,
+            role: true,
+          },
         });
+
+        return user;
+      } catch (error) {
+        console.error("Profile picture upload error:", error);
+        throw error;
       }
     }
   );

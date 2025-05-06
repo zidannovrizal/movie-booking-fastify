@@ -1,8 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.config = void 0;
-require("dotenv/config");
-exports.config = {
+import "dotenv/config";
+export const config = {
     port: process.env.PORT || 3000,
     host: process.env.HOST || "localhost",
     corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5173",
@@ -17,3 +14,4 @@ for (const envVar of requiredEnvVars) {
         throw new Error(`Missing required environment variable: ${envVar}`);
     }
 }
+//# sourceMappingURL=config.js.map

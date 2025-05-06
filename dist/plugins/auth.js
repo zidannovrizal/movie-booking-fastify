@@ -1,10 +1,5 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const types_1 = require("../types");
-const fastify_plugin_1 = __importDefault(require("fastify-plugin"));
+import { UserRole } from "../types/index.js";
+import fp from "fastify-plugin";
 async function authPlugin(fastify) {
     // Add authentication decorator
     fastify.decorate("authenticate", async function (request, reply) {
@@ -16,14 +11,15 @@ async function authPlugin(fastify) {
         }
     });
     // Add admin authorization decorator
-    fastify.decorate("authorizeAdmin", async function (request, reply) {
+    fastify.decorate("requireAdmin", async function (request, reply) {
         const user = request.user;
-        if (!user || user.role !== types_1.UserRole.ADMIN) {
+        if (!user || user.role !== UserRole.ADMIN) {
             reply.code(403).send({ error: "Forbidden" });
         }
     });
 }
-exports.default = (0, fastify_plugin_1.default)(authPlugin, {
+export default fp(authPlugin, {
     name: "auth-plugin",
     dependencies: ["@fastify/jwt"],
 });
+//# sourceMappingURL=auth.js.map

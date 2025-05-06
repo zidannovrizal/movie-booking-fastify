@@ -26,9 +26,14 @@ export interface Theater {
   name: string;
   location: string;
   city: string;
+  country: string;
   address: string;
   facilities: string[];
   capacity: number;
+  regularPriceWeekday: number;
+  regularPriceWeekend: number;
+  vipPriceWeekday: number;
+  vipPriceWeekend: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,9 +42,14 @@ export interface CreateTheaterDto {
   name: string;
   location: string;
   city: string;
+  country?: string;
   address: string;
   facilities: string[];
-  capacity: number;
+  capacity?: number;
+  regularPriceWeekday?: number;
+  regularPriceWeekend?: number;
+  vipPriceWeekday?: number;
+  vipPriceWeekend?: number;
 }
 
 export interface UpdateTheaterDto extends Partial<CreateTheaterDto> {}

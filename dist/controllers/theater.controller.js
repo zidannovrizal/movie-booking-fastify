@@ -1,76 +1,46 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TheaterController = void 0;
-const client_1 = require("@prisma/client");
-class TheaterController {
+import { PrismaClient } from "@prisma/client";
+export class TheaterController {
+    prisma;
     constructor() {
-        this.prisma = new client_1.PrismaClient();
+        this.prisma = new PrismaClient();
     }
     async getAllTheaters() {
-        return this.prisma.theater.findMany({
-            include: {
-                showTimes: {
-                    include: {
-                        movie: true,
-                    },
-                },
-            },
-        });
+        return this.prisma.theater.findMany();
     }
     async getTheaterById(id) {
         return this.prisma.theater.findUnique({
             where: { id },
-            include: {
-                showTimes: {
-                    include: {
-                        movie: true,
-                    },
-                },
-            },
         });
     }
     async getTheatersByCity(city) {
         return this.prisma.theater.findMany({
             where: {
-                city: {
-                    contains: city,
-                    mode: "insensitive",
-                },
-            },
-            include: {
-                showTimes: {
-                    include: {
-                        movie: true,
-                    },
-                },
+                city: city,
             },
         });
     }
     async getTheaterShowtimes(id, date) {
-        const startDate = date ? new Date(date) : new Date();
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + 1);
-        return this.prisma.showTime.findMany({
-            where: {
-                theaterId: id,
-                startTime: {
-                    gte: startDate,
-                    lt: endDate,
-                },
-            },
-            include: {
-                movie: true,
-                theater: true,
-            },
-            orderBy: {
-                startTime: "asc",
-            },
+        const theater = await this.prisma.theater.findUnique({
+            where: { id },
         });
+        if (!theater) {
+            throw new Error("Theater not found");
+        }
+        return theater.showTimes;
     }
     async createTheater(data) {
+        // Set default values if not provided
+        const theaterData = {
+            ...data,
+            capacity: data.capacity || 100, // Default capacity of 100 seats
+            country: data.country || "Indonesia", // Default country
+            regularPriceWeekday: data.regularPriceWeekday || 50000, // Default weekday price
+            regularPriceWeekend: data.regularPriceWeekend || 75000, // Default weekend price
+            vipPriceWeekday: data.vipPriceWeekday || 75000, // Default VIP weekday price
+            vipPriceWeekend: data.vipPriceWeekend || 100000, // Default VIP weekend price
+        };
         return this.prisma.theater.create({
-            data,
+            data: theaterData,
         });
     }
     async updateTheater(id, data) {
@@ -85,4 +55,4 @@ class TheaterController {
         });
     }
 }
-exports.TheaterController = TheaterController;
+//# sourceMappingURL=theater.controller.js.map

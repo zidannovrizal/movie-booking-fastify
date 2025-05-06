@@ -76,11 +76,7 @@ export class AuthController {
         role: true,
         bookings: {
           include: {
-            showTime: {
-              include: {
-                theater: true,
-              },
-            },
+            theater: true,
           },
         },
       },

@@ -1,16 +1,36 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.authRoutes = void 0;
-const client_1 = require("@prisma/client");
-const bcrypt_1 = __importDefault(require("bcrypt"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const prisma = new client_1.PrismaClient();
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import fs from "fs/promises";
+import { randomUUID } from "crypto";
+import { pipeline } from "stream/promises";
+import { createWriteStream } from "fs";
+const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
-const authRoutes = async function (fastify) {
+// Get the directory path for uploads
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const UPLOAD_DIR = join(__dirname, "..", "..", "uploads");
+// Create uploads directory if it doesn't exist
+try {
+    await fs.mkdir(UPLOAD_DIR, { recursive: true });
+}
+catch (error) {
+    console.error("Failed to create uploads directory:", error);
+}
+export const authRoutes = async function (fastify) {
     fastify.log.info("Registering auth routes");
+    // Register form parser
+    await fastify.register(import("@fastify/formbody"));
+    // Register multipart support for file uploads
+    await fastify.register(import("@fastify/multipart"), {
+        limits: {
+            fileSize: 5 * 1024 * 1024, // 5MB
+        },
+        attachFieldsToBody: true,
+    });
     // Sign Up Route
     fastify.post("/signup", async (request, reply) => {
         fastify.log.info("Received signup request");
@@ -26,7 +46,7 @@ const authRoutes = async function (fastify) {
                 });
             }
             // Hash password
-            const hashedPassword = await bcrypt_1.default.hash(password, 10);
+            const hashedPassword = await bcrypt.hash(password, 10);
             // Create new user
             const user = await prisma.user.create({
                 data: {
@@ -44,7 +64,7 @@ const authRoutes = async function (fastify) {
                 },
             });
             // Generate JWT token
-            const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "24h" });
+            const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "24h" });
             return reply.status(201).send({
                 user,
                 token,
@@ -72,14 +92,14 @@ const authRoutes = async function (fastify) {
                 });
             }
             // Verify password
-            const isValidPassword = await bcrypt_1.default.compare(password, user.password);
+            const isValidPassword = await bcrypt.compare(password, user.password);
             if (!isValidPassword) {
                 return reply.status(401).send({
                     error: "Invalid email or password",
                 });
             }
             // Generate JWT token
-            const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "24h" });
+            const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "24h" });
             // Return user data (excluding password) and token
             const { password: _, ...userWithoutPassword } = user;
             return reply.send({
@@ -108,6 +128,7 @@ const authRoutes = async function (fastify) {
                     email: true,
                     name: true,
                     phoneNumber: true,
+                    profilePicture: true,
                     role: true,
                 },
             });
@@ -121,5 +142,141 @@ const authRoutes = async function (fastify) {
             throw error;
         }
     });
+    // Update profile
+    fastify.put("/profile", {
+        onRequest: [fastify.authenticate],
+    }, async (request, reply) => {
+        try {
+            const { name, email, phoneNumber } = request.body;
+            const userId = request.user.id;
+            // Check if any data was provided
+            if (!name && !email && !phoneNumber) {
+                return reply.status(400).send({
+                    error: "No data provided",
+                });
+            }
+            // Check if email is being changed and if it's already taken
+            if (email) {
+                const existingUser = await prisma.user.findFirst({
+                    where: {
+                        email,
+                        NOT: {
+                            id: userId,
+                        },
+                    },
+                });
+                if (existingUser) {
+                    return reply.status(400).send({
+                        error: "Email is already taken",
+                    });
+                }
+            }
+            // Update user profile
+            const user = await prisma.user.update({
+                where: {
+                    id: userId,
+                },
+                data: {
+                    ...(name && { name }),
+                    ...(email && { email }),
+                    ...(phoneNumber && { phoneNumber }),
+                },
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    phoneNumber: true,
+                    profilePicture: true,
+                    role: true,
+                },
+            });
+            return user;
+        }
+        catch (error) {
+            console.error("Update profile error:", error);
+            throw error;
+        }
+    });
+    // Change password
+    fastify.put("/change-password", {
+        onRequest: [fastify.authenticate],
+    }, async (request, reply) => {
+        try {
+            const { currentPassword, newPassword } = request.body;
+            const userId = request.user.id;
+            // Get user with password
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+            });
+            if (!user) {
+                return reply.status(404).send({
+                    error: "User not found",
+                });
+            }
+            // Verify current password
+            const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+            if (!isValidPassword) {
+                return reply.status(400).send({
+                    error: "Current password is incorrect",
+                });
+            }
+            // Hash new password
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            // Update password
+            await prisma.user.update({
+                where: { id: userId },
+                data: {
+                    password: hashedPassword,
+                },
+            });
+            return { message: "Password updated successfully" };
+        }
+        catch (error) {
+            console.error("Change password error:", error);
+            throw error;
+        }
+    });
+    // Upload profile picture
+    fastify.post("/profile-picture", {
+        onRequest: [fastify.authenticate],
+    }, async (request, reply) => {
+        try {
+            const data = await request.file();
+            if (!data) {
+                throw new Error("No file uploaded");
+            }
+            // Validate file type
+            const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+            if (!allowedMimeTypes.includes(data.mimetype)) {
+                throw new Error("Invalid file type. Only JPEG, PNG and WebP are allowed");
+            }
+            // Generate unique filename
+            const fileExt = data.filename.split(".").pop();
+            const filename = `${randomUUID()}.${fileExt}`;
+            const filepath = join(UPLOAD_DIR, filename);
+            // Save file
+            await pipeline(data.file, createWriteStream(filepath));
+            // Update user profile with new picture URL
+            const user = await prisma.user.update({
+                where: { id: request.user.id },
+                data: {
+                    profilePicture: `/uploads/${filename}`,
+                },
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    phoneNumber: true,
+                    profilePicture: true,
+                    role: true,
+                },
+            });
+            return user;
+        }
+        catch (error) {
+            console.error("Profile picture upload error:", error);
+            throw error;
+        }
+    });
 };
-exports.authRoutes = authRoutes;
+//# sourceMappingURL=auth.routes.js.map

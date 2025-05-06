@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
-import { FastifyRequest, FastifyReply } from "fastify";
-import { tmdbService } from "../services/tmdb.service";
+import axios from "axios";
+import { tmdbService } from "../services/tmdb.service.js";
+import type { FormattedMovie } from "../services/tmdb.service.js";
 
 export class MovieController {
   private prisma!: PrismaClient;
@@ -17,11 +18,11 @@ export class MovieController {
     }
   }
 
-  async getAllMovies() {
+  async getAllMovies(): Promise<FormattedMovie[]> {
     return tmdbService.getNowPlayingMovies();
   }
 
-  async getMovieById(id: string) {
+  async getMovieById(id: string): Promise<FormattedMovie> {
     const movieId = parseInt(id);
     if (isNaN(movieId)) {
       throw new Error("Invalid movie ID");
@@ -29,15 +30,15 @@ export class MovieController {
     return tmdbService.getMovieDetails(movieId);
   }
 
-  async getNowShowingMovies() {
+  async getNowShowingMovies(): Promise<FormattedMovie[]> {
     return tmdbService.getNowPlayingMovies();
   }
 
-  async getComingSoonMovies() {
+  async getComingSoonMovies(): Promise<FormattedMovie[]> {
     return tmdbService.getUpcomingMovies();
   }
 
-  async searchMovies(query: string) {
+  async searchMovies(query: string): Promise<FormattedMovie[]> {
     return tmdbService.searchMovies(query);
   }
 

@@ -1,12 +1,11 @@
 import fastify from "fastify";
 import jwt from "@fastify/jwt";
 import cors from "@fastify/cors";
-import { movieRoutes } from "./routes/movie.routes";
-import { theaterRoutes } from "./routes/theater.routes";
-import { authRoutes } from "./routes/auth.routes";
-import { bookingRoutes } from "./routes/booking.routes";
-import { showtimeRoutes } from "./routes/showtime.routes";
-import authPlugin from "./plugins/auth";
+import { movieRoutes } from "./routes/movie.routes.js";
+import { theaterRoutes } from "./routes/theater.routes.js";
+import { authRoutes } from "./routes/auth.routes.js";
+import { bookingRoutes } from "./routes/booking.routes.js";
+import authPlugin from "./plugins/auth.js";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import fastifyStatic from "@fastify/static";
@@ -74,7 +73,6 @@ app.register(async (instance) => {
   instance.register(theaterRoutes, { prefix: "/api/theaters" });
   instance.register(authRoutes, { prefix: "/api/auth" });
   instance.register(bookingRoutes, { prefix: "/api/bookings" });
-  instance.register(showtimeRoutes, { prefix: "/api/showtimes" });
 });
 
 // Health check route
