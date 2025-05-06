@@ -12,9 +12,12 @@ COPY src ./src/
 
 RUN npm install
 RUN npx prisma generate
-RUN npx prisma migrate deploy
 RUN npm run build
 
 EXPOSE 3000
 
-CMD ["npm", "start"] 
+# Create start script
+RUN echo '#!/bin/sh\nnpx prisma migrate deploy\nnpm start' > start.sh
+RUN chmod +x start.sh
+
+CMD ["./start.sh"] 
