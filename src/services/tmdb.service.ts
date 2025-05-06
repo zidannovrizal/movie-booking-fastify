@@ -118,14 +118,14 @@ class TMDBService {
     params: {
       api_key: TMDB_API_KEY,
     },
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
 
-  private accessToken: string;
   private imageBaseUrl: string;
 
   constructor() {
-    this.accessToken =
-      "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhM2Y5N2RlMGJmMmNkYzdiZDhmYWJlNWM3MzY2YTI3MiIsIm5iZiI6MS43NDYzNDIxOTAyMDk5OTk4ZSs5LCJzdWIiOiI2ODE3MTEyZWQzOGQ2MmI0Yzc5MTMzZDgiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.2EpJA9GZDMGOYisSBTt6GQVJSg6R-nXOpiX8oTPL7io";
     this.imageBaseUrl = "https://image.tmdb.org/t/p";
   }
 

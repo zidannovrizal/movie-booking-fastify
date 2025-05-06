@@ -48,6 +48,7 @@ app.register(cors, {
       "http://127.0.0.1:5173",
       "http://localhost:4173",
       "https://movie-booking-web-production.up.railway.app",
+      "https://movie-time-pwl.netlify.app",
     ];
 
     // Allow requests with no origin (like mobile apps or curl requests)
