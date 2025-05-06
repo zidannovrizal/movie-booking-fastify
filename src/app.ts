@@ -45,6 +45,8 @@ app.register(cors, {
     "http://localhost:5173",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
+    "https://movie-booking-web-production.up.railway.app", // Add your frontend Railway domain
+    "http://localhost:4173", // Vite preview mode
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],

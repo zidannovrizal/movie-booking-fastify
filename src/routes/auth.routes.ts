@@ -159,9 +159,26 @@ export const authRoutes = async function (fastify: FastifyInstance) {
         token,
       });
     } catch (error) {
-      console.error("Login error:", error);
+      // Enhanced error logging
+      console.error("Login error details:", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        email: email,
+        prismaConnected: await prisma
+          .$connect()
+          .then(() => true)
+          .catch(() => false),
+        jwt_secret_length: JWT_SECRET?.length || 0,
+      });
+
       return reply.status(500).send({
         error: "Internal server error during login",
+        details:
+          process.env.NODE_ENV === "development"
+            ? error instanceof Error
+              ? error.message
+              : String(error)
+            : undefined,
       });
     }
   });
