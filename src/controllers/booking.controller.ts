@@ -74,7 +74,9 @@ export class BookingController {
         theaterId,
         showDate: new Date(showDate),
         showTime,
-        status: "CONFIRMED",
+        status: {
+          in: ["CONFIRMED", "PENDING"],
+        },
       },
       select: {
         seats: true,
