@@ -49,10 +49,17 @@ app.register(cors, {
       "http://localhost:4173",
       "https://movie-booking-web-production.up.railway.app",
       "https://movie-time-pwl.netlify.app",
+      "https://movie-booking-fastify-production.up.railway.app",
     ];
 
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) {
+      cb(null, true);
+      return;
+    }
+
+    // Check if the origin is in our allowed list
+    if (allowedOrigins.includes(origin)) {
       cb(null, true);
       return;
     }
@@ -63,6 +70,7 @@ app.register(cors, {
       return;
     }
 
+    // Otherwise, reject the request
     cb(new Error("Not allowed by CORS"), false);
   },
   credentials: true,
