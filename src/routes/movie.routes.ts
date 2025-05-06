@@ -1,48 +1,87 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { FastifyInstance } from "fastify";
 import { MovieController } from "../controllers/movie.controller";
 
-export async function movieRoutes(fastify: FastifyInstance) {
-  const controller = new MovieController();
+const movieController = new MovieController();
 
-  // Get all movies (now playing)
+export async function movieRoutes(fastify: FastifyInstance) {
+  // Get all movies
   fastify.get("/", async (request, reply) => {
-    return controller.getAllMovies();
+    try {
+      return await movieController.getAllMovies();
+    } catch (error: any) {
+      console.error("Error getting all movies:", error);
+      reply.status(500).send({
+        error: "Internal Server Error",
+        message: error?.message || "Failed to get movies",
+      });
+    }
   });
 
-  // Get movie by id
+  // Get movie by ID
   fastify.get("/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    return controller.getMovieById(id);
+    try {
+      const { id } = request.params as { id: string };
+      return await movieController.getMovieById(id);
+    } catch (error: any) {
+      console.error("Error getting movie by id:", error);
+      reply.status(500).send({
+        error: "Internal Server Error",
+        message: error?.message || "Failed to get movie",
+      });
+    }
+  });
+
+  // Get theaters and their showtimes for a specific movie
+  fastify.get("/:id/theaters", async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      return await movieController.getMovieTheaters(parseInt(id));
+    } catch (error: any) {
+      console.error("Error getting movie theaters:", error);
+      reply.status(500).send({
+        error: "Internal Server Error",
+        message: error?.message || "Failed to get theaters",
+      });
+    }
   });
 
   // Get now showing movies
   fastify.get("/now-showing", async (request, reply) => {
-    return controller.getNowShowingMovies();
+    try {
+      return await movieController.getNowShowingMovies();
+    } catch (error: any) {
+      console.error("Error getting now showing movies:", error);
+      reply.status(500).send({
+        error: "Internal Server Error",
+        message: error?.message || "Failed to get now showing movies",
+      });
+    }
   });
 
   // Get coming soon movies
   fastify.get("/coming-soon", async (request, reply) => {
-    return controller.getComingSoonMovies();
+    try {
+      return await movieController.getComingSoonMovies();
+    } catch (error: any) {
+      console.error("Error getting coming soon movies:", error);
+      reply.status(500).send({
+        error: "Internal Server Error",
+        message: error?.message || "Failed to get coming soon movies",
+      });
+    }
   });
 
   // Search movies
-  fastify.get("/search", async (request, reply) => {
-    const { query } = request.query as { query: string };
-    if (!query) {
-      reply.code(400).send({ error: "Search query is required" });
-      return;
+  fastify.get("/search/:query", async (request, reply) => {
+    try {
+      const { query } = request.params as { query: string };
+      return await movieController.searchMovies(query);
+    } catch (error: any) {
+      console.error("Error searching movies:", error);
+      reply.status(500).send({
+        error: "Internal Server Error",
+        message: error?.message || "Failed to search movies",
+      });
     }
-    return controller.searchMovies(query);
-  });
-
-  // Get movie showtimes
-  fastify.get("/:id/showtimes", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const movieId = parseInt(id);
-    if (isNaN(movieId)) {
-      reply.code(400).send({ error: "Invalid movie ID" });
-      return;
-    }
-    return controller.getMovieShowtimes(movieId);
   });
 }

@@ -1,5 +1,5 @@
-import { PrismaClient, Prisma } from "@prisma/client";
-import { BookingStatus } from "../types";
+import { PrismaClient } from "@prisma/client";
+import { BookingStatus } from "@/types";
 
 export class BookingController {
   private prisma: PrismaClient;
@@ -11,50 +11,87 @@ export class BookingController {
   async createBooking(
     userId: string,
     data: {
-      showTimeId: string;
-      seats: string[];
+      movieId: number;
+      theaterId: string;
+      posterUrl: string;
+      showDate: string;
+      showTime: string;
+      seats: Array<{
+        seatNumber: string;
+        isVIP: boolean;
+        price: number;
+      }>;
+      totalPrice: number;
     }
   ) {
-    // Get showtime details to calculate price
-    const showTime = await this.prisma.showTime.findUnique({
-      where: { id: data.showTimeId },
+    // Check if seats are available
+    const existingBookings = await this.prisma.booking.findMany({
+      where: {
+        theaterId: data.theaterId,
+        showDate: new Date(data.showDate),
+        showTime: data.showTime,
+        status: "CONFIRMED",
+      },
+      select: {
+        seats: true,
+      },
     });
 
-    if (!showTime) {
-      throw new Error("Show time not found");
-    }
+    const bookedSeats = existingBookings.flatMap((booking) => booking.seats);
+    const requestedSeats = data.seats.map((seat) => seat.seatNumber);
 
-    // Calculate total price
-    const totalPrice = showTime.price * data.seats.length;
+    // Check for double booking
+    const doubleBookedSeats = requestedSeats.filter((seat) =>
+      bookedSeats.includes(seat)
+    );
+    if (doubleBookedSeats.length > 0) {
+      throw new Error(
+        `Seats ${doubleBookedSeats.join(", ")} are already booked`
+      );
+    }
 
     // Create booking
     return this.prisma.booking.create({
       data: {
         userId,
-        showTimeId: data.showTimeId,
-        seats: data.seats,
-        totalPrice,
-        status: BookingStatus.PENDING,
+        theaterId: data.theaterId,
+        tmdbMovieId: data.movieId,
+        posterUrl: data.posterUrl,
+        showDate: new Date(data.showDate),
+        showTime: data.showTime,
+        seats: requestedSeats,
+        totalPrice: data.totalPrice,
+        status: "PENDING",
       },
       include: {
-        showTime: {
-          include: {
-            theater: true,
-          },
-        },
+        theater: true,
       },
     });
   }
 
+  async getBookedSeats(theaterId: string, showDate: string, showTime: string) {
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        theaterId,
+        showDate: new Date(showDate),
+        showTime,
+        status: "CONFIRMED",
+      },
+      select: {
+        seats: true,
+      },
+    });
+
+    return bookings.flatMap((booking) => booking.seats);
+  }
+
   async getUserBookings(userId: string) {
     return this.prisma.booking.findMany({
-      where: { userId },
+      where: {
+        userId,
+      },
       include: {
-        showTime: {
-          include: {
-            theater: true,
-          },
-        },
+        theater: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -62,28 +99,13 @@ export class BookingController {
     });
   }
 
-  async getBookingById(id: string, userId: string) {
-    const booking = await this.prisma.booking.findUnique({
+  async getBookingById(id: string) {
+    return this.prisma.booking.findUnique({
       where: { id },
       include: {
-        showTime: {
-          include: {
-            theater: true,
-          },
-        },
+        theater: true,
       },
     });
-
-    if (!booking) {
-      throw new Error("Booking not found");
-    }
-
-    // Check if the booking belongs to the user
-    if (booking.userId !== userId) {
-      throw new Error("Unauthorized");
-    }
-
-    return booking;
   }
 
   async cancelBooking(id: string, userId: string) {
@@ -95,27 +117,14 @@ export class BookingController {
       throw new Error("Booking not found");
     }
 
-    // Check if the booking belongs to the user
     if (booking.userId !== userId) {
       throw new Error("Unauthorized");
-    }
-
-    // Check if the booking can be cancelled
-    if (booking.status !== BookingStatus.PENDING) {
-      throw new Error("Booking cannot be cancelled");
     }
 
     return this.prisma.booking.update({
       where: { id },
       data: {
-        status: BookingStatus.CANCELLED,
-      },
-      include: {
-        showTime: {
-          include: {
-            theater: true,
-          },
-        },
+        status: "CANCELLED",
       },
     });
   }

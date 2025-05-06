@@ -1,4 +1,4 @@
-import { UserRole } from "./index";
+import { UserRole } from "./index.ts";
 
 declare module "fastify" {
   interface FastifyRequest {

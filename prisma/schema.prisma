@@ -29,41 +29,40 @@ model User {
 }
 
 model Theater {
-  id          String     @id @default(uuid())
-  name        String
-  location    String
-  city        String     @db.VarChar(100)
-  address     String
-  facilities  String[]
-  capacity    Int
-  showTimes   ShowTime[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-}
-
-model ShowTime {
-  id        String    @id @default(uuid())
-  tmdbMovieId Int     // TMDB Movie ID
-  theaterId String
-  startTime DateTime
-  price     Float
-  theater   Theater   @relation(fields: [theaterId], references: [id])
-  bookings  Booking[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                String     @id @default(uuid())
+  name              String
+  location          String
+  city              String     @db.VarChar(100)
+  country           String     @db.VarChar(100)
+  address           String
+  facilities        String[]
+  capacity          Int
+  showTimes         String[]   // Array of available show times (e.g. ["10:00", "13:00", "16:00"])
+  regularPriceWeekday Float
+  regularPriceWeekend Float
+  vipPriceWeekday    Float
+  vipPriceWeekend    Float
+  bookings          Booking[]
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 }
 
 model Booking {
-  id         String   @id @default(uuid())
-  userId     String
-  showTimeId String
-  seats      String[] // Array of seat numbers
-  totalPrice Float
-  status     BookingStatus @default(PENDING)
-  user       User     @relation(fields: [userId], references: [id])
-  showTime   ShowTime @relation(fields: [showTimeId], references: [id])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(uuid())
+  userId      String
+  theaterId   String
+  tmdbMovieId Int     // TMDB Movie ID
+  posterUrl   String? // Movie poster URL
+  showDate    DateTime // The date of the show
+  showTime    String   // The time slot (e.g. "10:00")
+  isVIP       Boolean  @default(false)
+  seats       String[] // Array of seat numbers
+  totalPrice  Float
+  status      BookingStatus @default(PENDING)
+  user        User     @relation(fields: [userId], references: [id])
+  theater     Theater  @relation(fields: [theaterId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 enum UserRole {

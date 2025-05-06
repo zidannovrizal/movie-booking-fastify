@@ -59,7 +59,8 @@ export const authRoutes = async function (fastify: FastifyInstance) {
     limits: {
       fileSize: 5 * 1024 * 1024, // 5MB
     },
-    attachFieldsToBody: true, // This will attach form fields to request.body
+    attachFieldsToBody: true,
+    addToBody: true,
   });
 
   // Sign Up Route
@@ -202,34 +203,24 @@ export const authRoutes = async function (fastify: FastifyInstance) {
     "/profile",
     {
       onRequest: [fastify.authenticate],
-      // Configure multipart
-      config: {
-        allowedMimeTypes: ["image/jpeg", "image/png", "image/gif"],
-      },
     },
     async (request, reply) => {
       try {
-        console.log("Starting profile update...");
-        console.log("Request body:", request.body);
+        const { name, email, phoneNumber } = request.body;
+        const userId = request.user.id;
 
-        const formData = request.body as UpdateProfileBody;
-
-        console.log("Received data:", formData);
-
-        if (!formData) {
-          console.log("No data found in request");
+        // Check if any data was provided
+        if (!name && !email && !phoneNumber) {
           return reply.status(400).send({
             error: "No data provided",
           });
         }
 
-        const userId = request.user.id;
-
         // Check if email is being changed and if it's already taken
-        if (formData.email) {
+        if (email) {
           const existingUser = await prisma.user.findFirst({
             where: {
-              email: formData.email,
+              email,
               NOT: {
                 id: userId,
               },
@@ -243,29 +234,16 @@ export const authRoutes = async function (fastify: FastifyInstance) {
           }
         }
 
-        // Update user profile with form data fields
-        const updateData = {
-          ...(formData.name && { name: formData.name }),
-          ...(formData.email && { email: formData.email }),
-          ...(formData.phoneNumber && { phoneNumber: formData.phoneNumber }),
-        };
-
-        console.log("Final update data:", updateData);
-
-        // Only proceed with update if there are fields to update
-        if (Object.keys(updateData).length === 0) {
-          console.log("No fields to update found in updateData");
-          return reply.status(400).send({
-            error: "No fields to update",
-          });
-        }
-
         // Update user profile
         const user = await prisma.user.update({
           where: {
             id: userId,
           },
-          data: updateData,
+          data: {
+            ...(name && { name }),
+            ...(email && { email }),
+            ...(phoneNumber && { phoneNumber }),
+          },
           select: {
             id: true,
             email: true,
@@ -275,23 +253,9 @@ export const authRoutes = async function (fastify: FastifyInstance) {
           },
         });
 
-        // Get the complete user data including profilePicture
-        const userWithProfile = await prisma.user.findUnique({
-          where: { id: user.id },
-        });
-
-        if (!userWithProfile) {
-          throw new Error("User not found after update");
-        }
-
-        // Remove password from response
-        const { password: _, ...userResponse } = userWithProfile;
-
-        console.log("Updated user:", userResponse);
-
         return reply.send({
           message: "Profile updated successfully",
-          user: userResponse,
+          user,
         });
       } catch (error) {
         console.error("Update profile error:", error);

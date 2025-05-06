@@ -32,18 +32,28 @@ export async function bookingRoutes(fastify: FastifyInstance) {
       preHandler: [authenticate, authorizeAdmin],
     },
     async (request, reply) => {
-      return controller.getAllBookings();
+      try {
+        const bookings = await controller.getAllBookings();
+        return bookings;
+      } catch (error) {
+        reply.code(500).send({ error: "Failed to fetch bookings" });
+      }
     }
   );
 
   // Get user's bookings
   fastify.get(
-    "/my-bookings",
+    "/user",
     {
       preHandler: [authenticate],
     },
     async (request, reply) => {
-      return controller.getUserBookings(request.user.id);
+      try {
+        const bookings = await controller.getUserBookings(request.user.id);
+        return bookings;
+      } catch (error) {
+        reply.code(500).send({ error: "Failed to fetch user bookings" });
+      }
     }
   );
 
@@ -56,22 +66,19 @@ export async function bookingRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params as { id: string };
       try {
-        // If admin, allow access to any booking
-        if (request.user.role === "ADMIN") {
-          const booking = await controller.getBookingById(id, request.user.id);
-          return booking;
-        }
-
-        // For regular users, check ownership
         const booking = await controller.getBookingById(id, request.user.id);
         return booking;
-      } catch (err) {
-        const error = err as BookingError;
-        if (error.message === "Unauthorized") {
+      } catch (error) {
+        const err = error as BookingError;
+        if (err.message === "Unauthorized") {
           reply.code(403).send({ error: "Forbidden" });
           return;
         }
-        throw err;
+        if (err.message === "Booking not found") {
+          reply.code(404).send({ error: "Booking not found" });
+          return;
+        }
+        reply.code(500).send({ error: "Failed to fetch booking" });
       }
     }
   );
@@ -83,11 +90,21 @@ export async function bookingRoutes(fastify: FastifyInstance) {
       preHandler: [authenticate],
     },
     async (request, reply) => {
-      const bookingData = request.body as {
-        showTimeId: string;
-        seats: string[];
-      };
-      return controller.createBooking(request.user.id, bookingData);
+      try {
+        const userId = request.user.id;
+        const booking = await controller.createBooking(
+          userId,
+          request.body as any
+        );
+        return booking;
+      } catch (error: any) {
+        console.error("Error creating booking:", error);
+        if (error.message.includes("already booked")) {
+          reply.code(400).send({ error: error.message });
+        } else {
+          reply.code(500).send({ error: "Failed to create booking" });
+        }
+      }
     }
   );
 
@@ -98,9 +115,14 @@ export async function bookingRoutes(fastify: FastifyInstance) {
       preHandler: [authenticate, authorizeAdmin],
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const { status } = request.body as { status: BookingStatus };
-      return controller.updateBookingStatus(id, status);
+      try {
+        const { id } = request.params as { id: string };
+        const { status } = request.body as { status: BookingStatus };
+        const booking = await controller.updateBookingStatus(id, status);
+        return booking;
+      } catch (error) {
+        reply.code(500).send({ error: "Failed to update booking status" });
+      }
     }
   );
 
@@ -111,24 +133,42 @@ export async function bookingRoutes(fastify: FastifyInstance) {
       preHandler: [authenticate],
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
       try {
-        // If admin, allow cancellation of any booking
-        if (request.user.role === "ADMIN") {
-          return controller.updateBookingStatus(id, BookingStatus.CANCELLED);
-        }
-
-        // For regular users, check ownership first
-        const booking = await controller.getBookingById(id, request.user.id);
-        return controller.updateBookingStatus(id, BookingStatus.CANCELLED);
-      } catch (err) {
-        const error = err as BookingError;
+        const { id } = request.params as { id: string };
+        const userId = request.user.id;
+        const booking = await controller.cancelBooking(id, userId);
+        return booking;
+      } catch (error: any) {
+        console.error("Error cancelling booking:", error);
         if (error.message === "Unauthorized") {
-          reply.code(403).send({ error: "Forbidden" });
-          return;
+          reply.code(403).send({ error: "Unauthorized" });
+        } else if (error.message === "Booking not found") {
+          reply.code(404).send({ error: "Booking not found" });
+        } else {
+          reply.code(500).send({ error: "Failed to cancel booking" });
         }
-        throw err;
       }
     }
   );
+
+  // Get booked seats for a theater, date and time
+  fastify.get("/seats/:theaterId/:date/:time", async (request, reply) => {
+    try {
+      const { theaterId, date, time } = request.params as {
+        theaterId: string;
+        date: string;
+        time: string;
+      };
+
+      const bookedSeats = await controller.getBookedSeats(
+        theaterId,
+        date,
+        time
+      );
+      return bookedSeats;
+    } catch (error) {
+      console.error("Error fetching booked seats:", error);
+      reply.code(500).send({ error: "Failed to fetch booked seats" });
+    }
+  });
 }

@@ -1,11 +1,12 @@
 import fastify from "fastify";
 import jwt from "@fastify/jwt";
 import cors from "@fastify/cors";
-import { movieRoutes } from "./routes/movie.routes.js";
-import { theaterRoutes } from "./routes/theater.routes.js";
-import { authRoutes } from "./routes/auth.routes.js";
-import { bookingRoutes } from "./routes/booking.routes.js";
-import authPlugin from "./plugins/auth.js";
+import { movieRoutes } from "./routes/movie.routes";
+import { theaterRoutes } from "./routes/theater.routes";
+import { authRoutes } from "./routes/auth.routes";
+import { bookingRoutes } from "./routes/booking.routes";
+import { showtimeRoutes } from "./routes/showtime.routes";
+import authPlugin from "./plugins/auth";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import fastifyStatic from "@fastify/static";
@@ -40,10 +41,17 @@ const app = fastify({
 
 // Register core plugins first
 app.register(cors, {
-  origin: ["http://localhost:3000", "http://localhost:5173"], // Allow both Vite dev and production ports
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+  ],
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  exposedHeaders: ["Authorization"],
+  maxAge: 86400, // 24 hours
 });
 
 app.register(jwt, {
@@ -66,6 +74,7 @@ app.register(async (instance) => {
   instance.register(theaterRoutes, { prefix: "/api/theaters" });
   instance.register(authRoutes, { prefix: "/api/auth" });
   instance.register(bookingRoutes, { prefix: "/api/bookings" });
+  instance.register(showtimeRoutes, { prefix: "/api/showtimes" });
 });
 
 // Health check route
